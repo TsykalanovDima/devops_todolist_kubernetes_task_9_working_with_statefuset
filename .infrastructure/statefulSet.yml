@@ -1,0 +1,126 @@
+###############################################################################
+# Headless Service — required for stable DNS names (mysql-0.mysql, etc.)
+###############################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: mysql
+  labels:
+    app: mysql
+spec:
+  clusterIP: None          # headless
+  selector:
+    app: mysql
+  ports:
+  - name: mysql
+    port: 3306
+    targetPort: 3306
+---
+###############################################################################
+# StatefulSet
+###############################################################################
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: mysql
+spec:
+  serviceName: mysql       # must match the headless Service name above
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - name: mysql
+          containerPort: 3306
+
+        # ── Resource limits ────────────────────────────────────────────────
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # ── Sensitive environment variables from Secret ────────────────────
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_DATABASE
+
+        # ── Volume mounts ──────────────────────────────────────────────────
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+
+        # ── Liveness probe ─────────────────────────────────────────────────
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "mysqladmin ping -u root -p${MYSQL_ROOT_PASSWORD}"
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # ── Readiness probe ────────────────────────────────────────────────
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "mysql -u root -p${MYSQL_ROOT_PASSWORD} -e 'SELECT 1'"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+      volumes:
+      - name: mysql-init
+        configMap:
+          name: mysql-init-config
+
+  # ── VolumeClaimTemplates (one PVC per pod) ─────────────────────────────────
+  volumeClaimTemplates:
+  - metadata:
+      name: mysql-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      storageClassName: standard
+      resources:
+        requests:
+          storage: 2Gi
