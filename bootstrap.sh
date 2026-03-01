@@ -21,7 +21,7 @@ kubectl rollout status statefulset/mysql -n mysql --timeout=180s
 
 echo "==> Applying todoapp secrets and config..."
 kubectl apply -f .infrastructure/app_secret.yml
-kubectl apply -f .infrastructure/confgiMap.yml
+kubectl apply -f .infrastructure/configMap.yml
 
 echo "==> Applying PersistentVolume and PersistentVolumeClaim..."
 kubectl apply -f .infrastructure/pv.yml

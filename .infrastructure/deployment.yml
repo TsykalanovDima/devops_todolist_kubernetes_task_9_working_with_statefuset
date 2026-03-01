@@ -49,26 +49,26 @@ spec:
               name: app-secret
               key: SECRET_KEY
         # ── Database connection (points to mysql-0, the primary pod) ───────
-        - name: DB_NAME
+        - name: NAME
           valueFrom:
             secretKeyRef:
               name: app-secret
-              key: DB_NAME
-        - name: DB_USER
+              key: NAME
+        - name: USER
           valueFrom:
             secretKeyRef:
               name: app-secret
-              key: DB_USER
-        - name: DB_PASSWORD
+              key: USER
+        - name: PASSWORD
           valueFrom:
             secretKeyRef:
               name: app-secret
-              key: DB_PASSWORD
-        - name: DB_HOST
+              key: PASSWORD
+        - name: HOST
           valueFrom:
             secretKeyRef:
               name: app-secret
-              key: DB_HOST
+              key: HOST
         ports:
         - containerPort: 8080
         livenessProbe:

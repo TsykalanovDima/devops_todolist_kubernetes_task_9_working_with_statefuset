@@ -94,7 +94,7 @@ kubectl logs -n todoapp -l app=todoapp --tail=50
 ```bash
 kubectl exec -n todoapp \
   $(kubectl get pod -n todoapp -l app=todoapp -o jsonpath='{.items[0].metadata.name}') \
-  -- env | grep -E "DB_|SECRET_KEY"
+  -- env | grep -E "^NAME=|^USER=|^PASSWORD=|^HOST=|^SECRET_KEY="
 ```
 
 ### Test the health and readiness endpoints
